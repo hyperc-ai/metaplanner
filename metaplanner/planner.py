@@ -1,0 +1,392 @@
+from hyperc import solve, side_effect, side_effect_decorator
+# import gc
+# object_list = gc.get_objects()
+
+# TODO: constant objects support in predicate matching
+
+
+# TODO: classes support will reduce grounding
+
+class LinkedListItem:
+    next: "LinkedListItem"
+    item: str
+
+    def __init__(self):
+        self.item = ""
+
+class LinkedList:
+    head = LinkedListItem
+    next: LinkedListItem
+
+    def __init__(self):
+        self.next = LinkedListItem()
+        self.head = self.next
+
+    def append(self, s: str):
+        new_item = LinkedListItem()
+        self.next.item = s
+        self.next.next = new_item
+        self.next = new_item
+
+
+class PDDLClass:
+    # name: str
+    def __init__(self):
+        pass
+        # self.name = ""
+
+class Object:
+    # name: str
+    _class: PDDLClass
+    def __init__(self, _class: PDDLClass):
+        self._class = _class
+        # self.name = "<NONAME OBJECT>"
+
+        
+NONE_CLASS = PDDLClass()
+OBJ_NONE = Object(NONE_CLASS)
+# OBJ_NONE.name = "NONE_OBJECT"
+
+class Parameter:
+    obj: Object
+    _class: PDDLClass
+    const: bool
+    # name: str
+
+    def __init__(self, _class):
+        # self.name = ""
+        self.obj = OBJ_NONE
+        self._class = _class
+        self.const = False
+
+PAR_NONE = Parameter(NONE_CLASS)
+PAR_NONE.obj = OBJ_NONE
+
+class PredicateId:
+    # name: str
+    def __init__(self):
+        # self.name = ""    
+        pass
+
+
+EQ_PREDICATE = PredicateId()
+
+
+class Predicate:
+    name: PredicateId
+    obj_1: Object
+    obj_2: Object
+
+    par_1: Parameter
+    par_2: Parameter
+
+    negated: bool
+    matched: bool
+
+    parity: int
+
+    def __init__(self, name, obj_1=OBJ_NONE, obj_2=OBJ_NONE, 
+                 p1=PAR_NONE, p2=PAR_NONE, negated=False, parity=2):
+        self.name = name
+        self.parity = parity
+        self.obj_1 = obj_1
+        self.obj_2 = obj_2
+        self.negated = negated
+        self.matched = False
+        self.par_1 = p1
+        self.par_2 = p2
+        if obj_1 != OBJ_NONE:
+            self.par_1 = Parameter(obj_1._class)
+            self.par_1.obj = obj_1
+        if obj_2 != OBJ_NONE:
+            self.par_2 = Parameter(obj_2._class)
+            self.par_2.obj = obj_2
+        # side_effect(lambda: print(f" - ({self.name.name} {self.obj_1.name} {self.obj_2.name} {self.par_1.name} {self.par_2.name}) negated = {self.negated}"))
+
+
+class Action:
+    # name: str
+    next_action: "Action"
+    pre_count: int
+    eff_count: int
+
+    parameters: set
+    precondition: set
+    effect: set
+
+    pre_match: int
+    eff_match: int
+    eff_run: int
+
+    problem: "Problem"
+
+    def __init__(self, problem: "Problem"):
+    # def __init__(self, name, problem: "Problem"):
+        # self.name = name
+        self.pre_count = 0
+        self.eff_count = 0
+        self.parameters = set()
+        self.precondition = set()
+        self.effect = set()
+        self.pre_match = 0
+        self.eff_match = 0
+        self.eff_run = 0
+        self.problem = problem
+    
+    def add_precondition(self, p: Predicate):
+        problem = self.problem
+        assert 0 in problem.current_actions
+        side_effect(lambda: print(f"add_precondition:"))
+        self.precondition.add(p)
+        self.pre_count += 1
+
+    
+    def add_effect(self, p: Predicate):
+        assert 0 in self.problem.current_actions
+        self.effect.add(p)
+        self.eff_count += 1
+        side_effect(lambda: print(f"add_effect:"))
+
+
+    def match_precondition(self, pred: Predicate, fact: Predicate):
+        "Match some of our precondition"
+        problem = self.problem
+
+        # block to reduce branching
+        assert pred != fact
+        assert self.effect != problem.init
+        assert problem.init != problem.current_actions
+        assert problem.current_actions != self.effect
+        # end_block
+
+        assert problem.goal_matched == 0
+        assert pred in self.precondition, "`pred` must be from preconditions"
+        assert fact in problem.init, "`fact` must exist in problem fact space"
+        assert pred.name == fact.name, "Can only match same fact"
+        assert pred.negated == False 
+
+        if pred.par_1.obj == OBJ_NONE:
+            pred.par_1.obj = fact.obj_1
+        
+        if pred.parity == 2:
+            if pred.par_2.obj == OBJ_NONE:
+                pred.par_2.obj = fact.obj_2
+
+        assert fact.obj_1 == pred.par_1.obj
+        assert fact.obj_1._class == pred.par_1.obj._class
+
+        if pred.parity == 2:
+            assert fact.obj_2 == pred.par_2.obj
+            assert fact.obj_2._class == pred.par_2.obj._class
+
+        assert pred.matched == False
+
+        pred.matched = True
+        self.pre_match += 1
+        side_effect(lambda: print(f"match_precondition {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
+        # side_effect(lambda: print(f"match_precondition {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
+
+    def match_NOT_precondition_when_direct_link(self, pred: Predicate, fact: Predicate):
+        "Match NOT precondition"
+        # side_effect(lambda: print(f"match_NOT_precondition_when_direct_link {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
+        side_effect(lambda: print(f"match_NOT_precondition_when_direct_link {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
+        problem = self.problem
+
+        # block to reduce branching 
+        assert pred != fact
+        assert self.effect != problem.init
+        assert problem.init != problem.current_actions
+        assert problem.current_actions != self.effect
+        # end_block
+
+        assert problem.goal_matched == 0
+        assert pred in self.precondition, "`pred` must be from preconditions"
+        assert fact in problem.init, "`fact` with another value must exist in problem fact space"
+        assert pred.name == fact.name, "Can only match same fact"
+        assert pred.negated == True        
+        assert pred.matched == False
+        assert fact.obj_1 == pred.par_1.obj
+        assert fact.obj_1._class == pred.par_1.obj._class
+        if pred.parity == 1:
+            pred.matched = True
+            self.pre_match += 1
+            problem.current_actions.add(2)
+        elif pred.parity == 2:
+            assert fact.obj_2._class == pred.par_2.obj._class
+            if fact.obj_2 != pred.par_2.obj:
+                pred.matched = True
+                self.pre_match += 1
+                problem.current_actions.add(2)
+
+    def match_eq_precondition(self, pre: Predicate):
+        problem = self.problem
+
+        # block to reduce branching 
+        assert self.effect != problem.init
+        assert problem.init != problem.current_actions
+        assert problem.current_actions != self.effect
+        # end_block
+
+        assert problem.goal_matched == 0
+        assert pre in self.precondition, "`pred` must be from preconditions"
+        assert pre.matched == False
+        assert pre.name == EQ_PREDICATE
+        assert pre.par_1.obj != OBJ_NONE
+        assert pre.par_2.obj != OBJ_NONE
+        if pre.negated == True:
+            assert pre.par_1.obj != pre.par_2.obj
+        else:
+            assert pre.par_1.obj == pre.par_2.obj
+        self.pre_match += 1
+
+    def run_effect(self, eff: Predicate, obj1: Object, obj2: Object,
+                   existing_fact: Predicate):
+        problem = self.problem
+
+        # block to reduce branching 
+        assert eff != existing_fact
+        assert self.effect != problem.init
+        assert problem.init != problem.current_actions
+        assert problem.current_actions != self.effect
+        # end_block
+
+        assert problem.goal_matched == 0
+        assert self.pre_match > 0
+        assert self.pre_match == self.pre_count
+        assert eff in self.effect
+        assert eff.matched == False
+        eff.matched = True
+        if self.eff_match == 0:
+            side_effect(lambda: self.problem.plan.append(self))  # TODO: PERF
+            # self.problem.plan.append(self.name)  # TODO: PERF
+        self.eff_match += 1
+        if eff.par_1.obj == OBJ_NONE:
+            assert eff.par_1._class == obj1._class
+            eff.par_1.obj = obj1
+        if eff.parity == 2:
+            if eff.par_2.obj == OBJ_NONE:
+                eff.par_2._class == obj2._class
+                eff.par_2.obj = obj2
+        # If negated, remove, if non-negated: add
+        # side_effect(lambda: print(f"run_effect {eff.name.name},{eff.par_1.obj.name},{eff.par_2.obj.name} - {existing_fact}"))       
+        side_effect(lambda: print(f"run_effect {eff.name},{eff.par_1.obj},{eff.par_2.obj} - {existing_fact}"))       
+        if eff.negated == True:
+            assert existing_fact.name == eff.name
+            assert existing_fact.obj_1 == eff.par_1.obj
+            assert existing_fact.obj_1._class == eff.par_1.obj._class
+            if eff.parity == 2:
+                assert existing_fact.obj_2 == eff.par_2.obj
+                assert existing_fact.obj_2._class == eff.par_2.obj._class
+            problem.init.remove(existing_fact)
+            problem.current_actions.add(3)
+        else:
+            problem.init.add(Predicate(name=eff.name, obj_1=eff.par_1.obj, obj_2=eff.par_2.obj, parity=eff.parity))
+            problem.current_actions.add(3)
+
+        # side_effect(lambda: print(f"Running action {self.name}"))
+    def clean_parameter(self, par: Parameter, act: "Action"):
+        assert par.const == False
+        par = PAR_NONE
+        assert act.eff_match > 0
+        par.obj = OBJ_NONE
+        side_effect(lambda: print(f"clean_parameter {par}"))
+        
+    def clean_precondition(self, pred: Predicate,  act: "Action"):
+        assert pred in self.precondition
+        assert act.eff_count > 0
+        assert pred.matched == True
+        # TODO: clean precondition only when all parameters are cleaned
+        # TODO: if/else for constant parameters that don't need to be cleaned
+        # assert act.eff_match > 0
+        pred.matched = False
+        self.pre_match -= 1
+        side_effect(lambda: print(f"clean_precondition {pred.name}"))
+
+    def clean_eff(self, pred: Predicate,  act: "Action"):
+        assert pred in self.effect
+        assert self.problem.goal_matched == 0
+        # assert act.eff_match > 0
+        pred.matched = False
+        self.eff_match -= 1
+        side_effect(lambda: print(f"clean_eff {pred.name}"))
+
+    def finish_action(self, pred: Predicate, eff: Predicate):
+        assert self.eff_match == 0
+        assert self.pre_match == 0
+        assert self.problem.goal_matched == 0
+        assert pred.matched == False
+        assert eff.matched == False
+        # assert pred in self.precondition
+        # assert eff in self.effect
+        side_effect(lambda: print(f"finish_action {self}"))
+
+    def execute(self, prev: "Action"):
+        assert self.pre_match == self.pre_count
+        assert self.eff_run == self.eff_count
+        assert 4 in self.problem.current_actions
+        prev.next_action = self
+        side_effect(lambda: print(f"execute {self}"))
+
+
+class Domain:
+    actions: set  # actions defined in domain
+    def __init__(self):
+        self.actions = set()
+
+class Problem:
+    init: set  # initial fact space
+    goal: set  # the goal state predicate
+    goal_count: int
+    goal_matched: int
+    action_implementation_started: bool
+    solving_started: bool
+    current_actions: set
+    plan: LinkedList
+
+    def __init__(self):
+        self.init = set()
+        self.goal = set()
+        self.goal_count = 0
+        self.goal_matched = 0
+        self.action_implementation_started = False
+        self.solving_started = False  # Init for 1-off run
+        self.current_actions = set()
+        self.current_actions.add(0)
+        self.current_actions.add(1)
+        self.plan = LinkedList()
+
+    def add_goal(self, goal_pred: Predicate):
+        problem = self
+        assert problem.solving_started == False
+        self.goal.add(goal_pred)
+        self.goal_count += 1
+
+    def match_goal_condition(self, p: Predicate, g: Predicate):
+        problem = self
+
+        # block to reduce branching
+        assert p != g 
+        assert problem.init != problem.goal
+        # end_block
+
+        assert p in problem.init
+        assert g in problem.goal
+        assert p.name == g.name
+        assert p.obj_1 == g.obj_1
+        assert p.obj_2 == g.obj_2
+        assert g.matched == False
+        problem.goal_matched += 1
+        problem.action_implementation_started == False
+        g.matched = True
+        side_effect(lambda: print(f"Problem  condition satisfied! {p.name} - {p.obj_1} - {p.obj_2} "))
+
+    def match_goal(self):
+        problem = self
+        assert problem.goal_matched == problem.goal_count
+        print("Problem solved!")
+    
+    @side_effect_decorator
+    def prepare(self):
+        self.solving_started = True
+        self.current_actions.remove(0)
+        # solve(self.match_goal)

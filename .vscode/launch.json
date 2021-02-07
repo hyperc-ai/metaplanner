@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "MP: PyTest Current File",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-s",
+                "tests/${fileBasename}"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHON": "pypy3",
+                "HYPERC_OPTIMISATION_OFF": "1",
+                "HYPERC_LOGLEVEL": "DEBUG",
+                "HYPERC_LIN_COUNT": "30",
+                "HYPERC_SOLVER_MAX_TIME": "30000",
+                "HYPERC_STORE_STDOUT": "1",
+                "HYPERC_SPLIT_SKIP": "1",
+                "HYPERC_SEARCH_CONFIG": "lmcount-alt5-simple"
+            }
+        },
+        {
+            "name": "MP: static test file",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-s",
+                "tests/test_xtj_static_file.py::test_remove_row"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHON": "pypy3",
+                "HYPERC_SEARCH_CONFIG": "lmcount_alt5",
+                "HYPERC_SPLIT_OFF":"1",
+                "HYPERC_SOLVER_MAX_TIME": "999900",
+                "HYPERC_MAX_PROC": "1",
+                "HYPERC_OPTIMISATION_OFF": "1",
+                "HYPERC_ASE_OFF": "1",
+                "HYPERC_RTX_OFF": "1"
+            }
+        }
+    ]
+}
