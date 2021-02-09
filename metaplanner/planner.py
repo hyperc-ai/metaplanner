@@ -256,8 +256,9 @@ class Action:
         assert eff in self.effect
         assert eff.matched == False
         eff.matched = True
-        if self.eff_match == 0:
-            side_effect(lambda: self.problem.plan.append(self))  # TODO: PERF
+        side_effect(lambda: self.problem.plan.append(self if self.eff_match == 0 else None))
+        # if self.eff_match == 0:  # TODO: remove this because it creates spurious branches
+            # side_effect(lambda: self.problem.plan.append(self))  # TODO: PERF
             # self.problem.plan.append(self.name)  # TODO: PERF
         self.eff_match += 1
         if eff.par_1.obj == OBJ_NONE:
@@ -284,16 +285,22 @@ class Action:
             problem.current_actions.add(3)
 
         # side_effect(lambda: print(f"Running action {self.name}"))
-    def clean_parameter(self, par: Parameter, act: "Action"):
+    def clean_parameter(self, par: Parameter):
+        # block to reduce branching 
+        # assert self.effect != self.problem.init
+        # assert self.problem.init != self.problem.current_actions
+        # assert self.problem.current_actions != self.effect
+        # end_block
+
         assert par.const == False
-        par = PAR_NONE
-        assert act.eff_match > 0
+        assert self.eff_match > 0
+        # assert 3 in self.problem.current_actions
         par.obj = OBJ_NONE
         side_effect(lambda: print(f"clean_parameter {par}"))
         
-    def clean_precondition(self, pred: Predicate,  act: "Action"):
+    def clean_precondition(self, pred: Predicate):
         assert pred in self.precondition
-        assert act.eff_count > 0
+        assert self.eff_count > 0
         assert pred.matched == True
         # TODO: clean precondition only when all parameters are cleaned
         # TODO: if/else for constant parameters that don't need to be cleaned
@@ -302,7 +309,7 @@ class Action:
         self.pre_match -= 1
         side_effect(lambda: print(f"clean_precondition {pred.name}"))
 
-    def clean_eff(self, pred: Predicate,  act: "Action"):
+    def clean_effect(self, pred: Predicate):
         assert pred in self.effect
         assert self.problem.goal_matched == 0
         # assert act.eff_match > 0
