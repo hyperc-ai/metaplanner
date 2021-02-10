@@ -191,10 +191,10 @@ def test_action_twice():
     action.run_effect(is_at_eff, None, None, None)
 
     # clean parameters
-    action.clean_parameter(node_connected_pre.par_1)
-    action.clean_parameter(node_connected_pre.par_2)
-    action.clean_parameter(is_at_pre.par_1)
-    action.clean_parameter(is_at_pre.par_2)
+    # action.clean_parameter(node_connected_pre.par_1)
+    # action.clean_parameter(node_connected_pre.par_2)
+    # action.clean_parameter(is_at_pre.par_1)
+    # action.clean_parameter(is_at_pre.par_2)
 
     # clean preconditions
     action.clean_precondition(node_connected_pre)
@@ -224,10 +224,10 @@ def test_action_twice():
 
 
     # clean parameters
-    action.clean_parameter(node_connected_pre.par_1)
-    action.clean_parameter(node_connected_pre.par_2)
-    action.clean_parameter(is_at_pre.par_1)
-    action.clean_parameter(is_at_pre.par_2)
+    # action.clean_parameter(node_connected_pre.par_1)
+    # action.clean_parameter(node_connected_pre.par_2)
+    # action.clean_parameter(is_at_pre.par_1)
+    # action.clean_parameter(is_at_pre.par_2)
 
     # clean preconditions
     action.clean_precondition(node_connected_pre)
@@ -241,7 +241,7 @@ def test_action_twice():
     problem.match_goal_condition(is_at_fact, is_at_goal)
     problem.match_goal()
 
-
+""" # Is not applicable as we clean parameters automatically
 def test_cant_execute_next_wo_cleaning():
     domain, problem, predicate_factory, object_factory, parameter_factories, action_factory \
         = parse_pddl_text(MAZE_DOMAIN, MAZE_PROBLEM)
@@ -270,8 +270,8 @@ def test_cant_execute_next_wo_cleaning():
 
     # clean parameters
     # action.clean_parameter(node_connected_pre.par_1)
-    action.clean_parameter(node_connected_pre.par_2)
-    action.clean_parameter(is_at_pre.par_1)
+    # action.clean_parameter(node_connected_pre.par_2)
+    # action.clean_parameter(is_at_pre.par_1)
     # action.clean_parameter(is_at_pre.par_2)
 
     # clean preconditions
@@ -289,40 +289,7 @@ def test_cant_execute_next_wo_cleaning():
     except AssertionError:
         return
     raise AssertionError("Can't reach here")
-    node_connected_fact = next(filter(
-        lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_1.obj == object_factory.get("n3"), problem.init)) 
-    action.match_precondition(node_connected_pre, node_connected_fact)
-
-    # run effect
-    is_at_eff = next(filter(
-        lambda x: x.name == predicate_factory.get("is-at")
-            and x.negated == False, action.effect)) 
-    is_at_eff_neg = next(filter(
-        lambda x: x.name == predicate_factory.get("is-at")
-            and x.negated == True, action.effect)) 
-    action.run_effect(is_at_eff_neg, None, None, is_at_fact)
-    action.run_effect(is_at_eff, None, None, None)
-
-
-    # clean parameters
-    action.clean_parameter(node_connected_pre.par_1)
-    action.clean_parameter(node_connected_pre.par_2)
-    action.clean_parameter(is_at_pre.par_1)
-    action.clean_parameter(is_at_pre.par_2)
-
-    # clean preconditions
-    action.clean_precondition(node_connected_pre)
-    action.clean_precondition(is_at_pre)
-    # clean effect 
-    action.clean_effect(is_at_eff) 
-    action.clean_effect(is_at_eff_neg)
-
-    is_at_fact = next(filter(lambda x: x.name == predicate_factory.get("is-at"), problem.init)) 
-    is_at_goal = next(filter(lambda x: x.name == predicate_factory.get("is-at"), problem.goal)) 
-    problem.match_goal_condition(is_at_fact, is_at_goal)
-    problem.match_goal()
-
+"""
 
 def test_cant_clean_to_match():
     "test if planner can circumvent proper matching with spurious cleaning"
@@ -340,8 +307,8 @@ def test_cant_clean_to_match():
         lambda x: x.name == predicate_factory.get("node-connected") \
             and x.par_1.obj == object_factory.get("n3"), problem.init)) 
     try:
-        action.clean_parameter(node_connected_pre.par_1)
-        action.clean_parameter(node_connected_pre.par_2)
+        # action.clean_parameter(node_connected_pre.par_1)
+        # action.clean_parameter(node_connected_pre.par_2)
         action.match_precondition(node_connected_pre, node_connected_fact_wrong)
 
         # run effect
@@ -362,3 +329,90 @@ def test_cant_clean_to_match():
         return
     raise AssertionError("Can't be solvable")
 
+MAZE_DOMAIN_2 = """
+(define (domain maze1)
+    (:requirements :strips :typing :equality :negative-preconditions :disjunctive-preconditions)
+    (:types agent node - object)
+    (:predicates 
+        (is-at ?v1 - agent ?v2 - node)
+        (node-connected ?n1 - node ?n2 - node)
+    )
+
+    (:action move-to-next-node
+        :parameters (?agent - agent ?node-1 - node ?node-2 - node)
+        :precondition (and
+            (is-at ?agent ?node-1)
+            (node-connected ?node-1 ?node-2)
+            (not (= ?node-2 n3))
+        )
+        :effect (and
+            (is-at ?agent ?node-2)
+        )
+    )
+)
+"""
+
+MAZE_PROBLEM_2 = """
+(define (problem maze1)
+    (:domain maze1)
+    (:objects 
+        agent - agent n1 n2 n3 n4 n22 n23 n24 - node
+    )
+    (:init
+        (is-at agent n2)
+        (node-connected n1 n2)
+        (node-connected n2 n22)
+        (node-connected n2 n3)
+        (node-connected n22 n23)
+        (node-connected n23 n24)
+        (node-connected n24 n4)
+        (node-connected n3 n4)
+    )
+    (:goal
+        (and
+            (is-at agent n4)
+        )
+    )
+)
+"""
+
+def test_cant_rerun_effect():
+    domain, problem, predicate_factory, object_factory, parameter_factories, action_factory \
+        = parse_pddl_text(MAZE_DOMAIN_2, MAZE_PROBLEM_2)
+    action: Action = action_factory.get("move-to-next-node")
+    # match 2 preconditions
+    node_connected_pre = next(filter(lambda x: x.name == predicate_factory.get("node-connected"), action.precondition))
+    is_at_pre = next(filter(lambda x: x.name == predicate_factory.get("is-at"), action.precondition)) 
+    eq_pre = next(filter(lambda x: x.name == EQ_PREDICATE, action.precondition))
+
+    is_at_fact = next(filter(lambda x: x.name == predicate_factory.get("is-at"), problem.init)) 
+    action.match_precondition(is_at_pre, is_at_fact)
+
+    node_connected_fact = next(filter(
+        lambda x: x.name == predicate_factory.get("node-connected") \
+            and x.par_2.obj == object_factory.get("n22"), problem.init)) 
+    action.match_precondition(node_connected_pre, node_connected_fact)
+    action.match_eq_precondition(eq_pre)
+
+    # run effect
+    is_at_eff = next(filter(
+        lambda x: x.name == predicate_factory.get("is-at")
+            and x.negated == False, action.effect)) 
+    action.run_effect(is_at_eff, None, None, None)
+
+    # action.clean_parameter(node_connected_pre.par_2)
+    action.clean_effect(is_at_eff)
+    agent_obj = object_factory.get("agent")
+    node_n4_obj = object_factory.get("n4")
+    try:
+        # run effect
+        action.run_effect(is_at_eff, agent_obj, node_n4_obj, None)
+
+        is_at_fact = next(filter(lambda x: x.name == predicate_factory.get("is-at") and\
+            x.obj_2 == node_n4_obj, problem.init)) 
+        is_at_goal = next(filter(lambda x: x.name == predicate_factory.get("is-at"), problem.goal)) 
+        problem.match_goal_condition(is_at_fact, is_at_goal)
+        problem.match_goal()
+    except AssertionError:
+        return
+    raise AssertionError("May not execute two run effects after cleaning")

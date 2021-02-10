@@ -183,6 +183,8 @@ class Action:
 
         pred.matched = True
         self.pre_match += 1
+        if self.pre_match == self.pre_count:
+            problem.current_actions.add(2)
         side_effect(lambda: print(f"match_precondition {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
         # side_effect(lambda: print(f"match_precondition {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
 
@@ -210,13 +212,15 @@ class Action:
         if pred.parity == 1:
             pred.matched = True
             self.pre_match += 1
-            problem.current_actions.add(2)
+            # problem.current_actions.add(2)
         elif pred.parity == 2:
             assert fact.obj_2._class == pred.par_2.obj._class
             if fact.obj_2 != pred.par_2.obj:
                 pred.matched = True
                 self.pre_match += 1
-                problem.current_actions.add(2)
+                # problem.current_actions.add(2)
+        if self.pre_match == self.pre_count:
+            problem.current_actions.add(2)
 
     def match_eq_precondition(self, pre: Predicate):
         problem = self.problem
@@ -238,6 +242,8 @@ class Action:
         else:
             assert pre.par_1.obj == pre.par_2.obj
         self.pre_match += 1
+        if self.pre_match == self.pre_count:
+            problem.current_actions.add(2)
 
     def run_effect(self, eff: Predicate, obj1: Object, obj2: Object,
                    existing_fact: Predicate):
@@ -250,6 +256,7 @@ class Action:
         assert problem.current_actions != self.effect
         # end_block
 
+        assert 2 in self.problem.current_actions
         assert problem.goal_matched == 0
         assert self.pre_match > 0
         assert self.pre_match == self.pre_count
@@ -279,24 +286,24 @@ class Action:
                 assert existing_fact.obj_2 == eff.par_2.obj
                 assert existing_fact.obj_2._class == eff.par_2.obj._class
             problem.init.remove(existing_fact)
-            problem.current_actions.add(3)
+            # problem.current_actions.add(3)
         else:
             problem.init.add(Predicate(name=eff.name, obj_1=eff.par_1.obj, obj_2=eff.par_2.obj, parity=eff.parity))
-            problem.current_actions.add(3)
+            # problem.current_actions.add(3)
 
         # side_effect(lambda: print(f"Running action {self.name}"))
-    def clean_parameter(self, par: Parameter):
+    # def clean_parameter(self, par: Parameter):
         # block to reduce branching 
         # assert self.effect != self.problem.init
         # assert self.problem.init != self.problem.current_actions
         # assert self.problem.current_actions != self.effect
         # end_block
 
-        assert par.const == False
-        assert self.eff_match > 0
+        # assert par.const == False
+        # assert self.eff_match > 0
         # assert 3 in self.problem.current_actions
-        par.obj = OBJ_NONE
-        side_effect(lambda: print(f"clean_parameter {par}"))
+        # par.obj = OBJ_NONE
+        # side_effect(lambda: print(f"clean_parameter {par}"))
         
     def clean_precondition(self, pred: Predicate):
         assert pred in self.precondition
@@ -307,6 +314,13 @@ class Action:
         # assert act.eff_match > 0
         pred.matched = False
         self.pre_match -= 1
+        if pred.par_1.const != True:
+            pred.par_1.obj = OBJ_NONE
+        if pred.parity == 2:
+            if pred.par_2.const != True:
+                pred.par_2.obj = OBJ_NONE
+        if 2 in self.problem.current_actions:
+            self.problem.current_actions.remove(2)
         side_effect(lambda: print(f"clean_precondition {pred.name}"))
 
     def clean_effect(self, pred: Predicate):
@@ -315,8 +329,16 @@ class Action:
         # assert act.eff_match > 0
         pred.matched = False
         self.eff_match -= 1
+        if pred.par_1.const != True:
+            pred.par_1.obj = OBJ_NONE
+        if pred.parity == 2:
+            if pred.par_2.const != True:
+                pred.par_2.obj = OBJ_NONE
+        if 2 in self.problem.current_actions:
+            self.problem.current_actions.remove(2)
         side_effect(lambda: print(f"clean_eff {pred.name}"))
 
+"""
     def finish_action(self, pred: Predicate, eff: Predicate):
         assert self.eff_match == 0
         assert self.pre_match == 0
@@ -333,6 +355,7 @@ class Action:
         assert 4 in self.problem.current_actions
         prev.next_action = self
         side_effect(lambda: print(f"execute {self}"))
+"""
 
 
 class Domain:
