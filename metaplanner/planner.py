@@ -118,6 +118,9 @@ class Action:
     eff_match: int
     eff_run: int
 
+    pre_completed: bool
+    eff_completed: bool
+
     problem: "Problem"
 
     def __init__(self, problem: "Problem"):
@@ -125,6 +128,8 @@ class Action:
         # self.name = name
         self.pre_count = 0
         self.eff_count = 0
+        self.eff_completed = False
+        self.pre_completed = False
         self.parameters = set()
         self.precondition = set()
         self.effect = set()
@@ -155,10 +160,12 @@ class Action:
         # block to reduce branching
         assert pred != fact
         assert self.effect != problem.init
-        assert problem.init != problem.current_actions
-        assert problem.current_actions != self.effect
+        # assert problem.init != problem.current_actions
+        # assert problem.current_actions != self.effect
         # end_block
 
+        assert self.eff_completed != True
+        assert self.pre_completed != True
         assert problem.goal_matched == 0
         assert pred in self.precondition, "`pred` must be from preconditions"
         assert fact in problem.init, "`fact` must exist in problem fact space"
@@ -184,12 +191,13 @@ class Action:
         pred.matched = True
         self.pre_match += 1
         if self.pre_match == self.pre_count:
-            problem.current_actions.add(2)
+            # problem.current_actions.add(2)
+            self.pre_completed = True
         side_effect(lambda: print(f"match_precondition {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
         # side_effect(lambda: print(f"match_precondition {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
 
     def match_NOT_precondition_when_direct_link(self, pred: Predicate, fact: Predicate):
-        "Match NOT precondition"
+        "Match NOT precondition. Has a limited support in HyperC PDDL dialect"
         # side_effect(lambda: print(f"match_NOT_precondition_when_direct_link {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
         side_effect(lambda: print(f"match_NOT_precondition_when_direct_link {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
         problem = self.problem
@@ -197,9 +205,11 @@ class Action:
         # block to reduce branching 
         assert pred != fact
         assert self.effect != problem.init
-        assert problem.init != problem.current_actions
-        assert problem.current_actions != self.effect
+        # assert problem.init != problem.current_actions
+        # assert problem.current_actions != self.effect
         # end_block
+        assert self.eff_completed != True
+        assert self.pre_completed != True
 
         assert problem.goal_matched == 0
         assert pred in self.precondition, "`pred` must be from preconditions"
@@ -209,29 +219,28 @@ class Action:
         assert pred.matched == False
         assert fact.obj_1 == pred.par_1.obj
         assert fact.obj_1._class == pred.par_1.obj._class
-        if pred.parity == 1:
-            pred.matched = True
-            self.pre_match += 1
-            # problem.current_actions.add(2)
-        elif pred.parity == 2:
+        if pred.parity == 2:
             assert fact.obj_2._class == pred.par_2.obj._class
-            if fact.obj_2 != pred.par_2.obj:
-                pred.matched = True
-                self.pre_match += 1
-                # problem.current_actions.add(2)
+            assert fact.obj_2 != pred.par_2.obj
+        pred.matched = True
+        self.pre_match += 1
         if self.pre_match == self.pre_count:
-            problem.current_actions.add(2)
+            # problem.current_actions.add(2)
+            self.pre_completed = True
 
     def match_eq_precondition(self, pre: Predicate):
         problem = self.problem
 
         # block to reduce branching 
         assert self.effect != problem.init
-        assert problem.init != problem.current_actions
-        assert problem.current_actions != self.effect
+        # assert problem.init != problem.current_actions
+        # assert problem.current_actions != self.effect
         # end_block
 
+        assert self.eff_completed != True
+        assert self.pre_completed != True
         assert problem.goal_matched == 0
+        assert pre.matched == False
         assert pre in self.precondition, "`pred` must be from preconditions"
         assert pre.matched == False
         assert pre.name == EQ_PREDICATE
@@ -242,8 +251,10 @@ class Action:
         else:
             assert pre.par_1.obj == pre.par_2.obj
         self.pre_match += 1
+        pre.matched = True
         if self.pre_match == self.pre_count:
-            problem.current_actions.add(2)
+            # problem.current_actions.add(2)
+            self.pre_completed = True
 
     def run_effect(self, eff: Predicate, obj1: Object, obj2: Object,
                    existing_fact: Predicate):
@@ -252,11 +263,13 @@ class Action:
         # block to reduce branching 
         assert eff != existing_fact
         assert self.effect != problem.init
-        assert problem.init != problem.current_actions
-        assert problem.current_actions != self.effect
+        # assert problem.init != problem.current_actions
+        # assert problem.current_actions != self.effect
         # end_block
 
-        assert 2 in self.problem.current_actions
+        assert self.eff_completed != True
+        assert self.pre_completed == True
+        # assert 2 in self.problem.current_actions
         assert problem.goal_matched == 0
         assert self.pre_match > 0
         assert self.pre_match == self.pre_count
@@ -286,10 +299,11 @@ class Action:
                 assert existing_fact.obj_2 == eff.par_2.obj
                 assert existing_fact.obj_2._class == eff.par_2.obj._class
             problem.init.remove(existing_fact)
-            # problem.current_actions.add(3)
         else:
             problem.init.add(Predicate(name=eff.name, obj_1=eff.par_1.obj, obj_2=eff.par_2.obj, parity=eff.parity))
+        if self.eff_match == self.eff_count:
             # problem.current_actions.add(3)
+            self.eff_completed = True
 
         # side_effect(lambda: print(f"Running action {self.name}"))
     # def clean_parameter(self, par: Parameter):
@@ -307,8 +321,12 @@ class Action:
         
     def clean_precondition(self, pred: Predicate):
         assert pred in self.precondition
-        assert self.eff_count > 0
+        # assert self.pre_match > 0
+        # assert self.eff_match > 0
         assert pred.matched == True
+        assert self.eff_completed == True
+        assert self.pre_completed == True
+        # assert 3 in self.problem.current_actions
         # TODO: clean precondition only when all parameters are cleaned
         # TODO: if/else for constant parameters that don't need to be cleaned
         # assert act.eff_match > 0
@@ -319,14 +337,19 @@ class Action:
         if pred.parity == 2:
             if pred.par_2.const != True:
                 pred.par_2.obj = OBJ_NONE
-        if 2 in self.problem.current_actions:
-            self.problem.current_actions.remove(2)
+        # if 2 in self.problem.current_actions:
+            # self.problem.current_actions.remove(2)
+        if self.pre_match == 0:
+            self.pre_completed = False
         side_effect(lambda: print(f"clean_precondition {pred.name}"))
 
     def clean_effect(self, pred: Predicate):
         assert pred in self.effect
         assert self.problem.goal_matched == 0
+        assert self.eff_completed == True
+        assert self.pre_completed == False
         # assert act.eff_match > 0
+        # assert act.pre_match > 0
         pred.matched = False
         self.eff_match -= 1
         if pred.par_1.const != True:
@@ -334,8 +357,10 @@ class Action:
         if pred.parity == 2:
             if pred.par_2.const != True:
                 pred.par_2.obj = OBJ_NONE
-        if 2 in self.problem.current_actions:
-            self.problem.current_actions.remove(2)
+        # if 2 in self.problem.current_actions:
+            # self.problem.current_actions.remove(2)
+        if self.eff_match == 0:
+            self.eff_completed = False
         side_effect(lambda: print(f"clean_eff {pred.name}"))
 
 """
