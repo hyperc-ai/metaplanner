@@ -2,6 +2,7 @@ import sys
 import re
 import string
 from itertools import zip_longest
+import metaplanner.planner
 
 # sys.path.append(".")
 from metaplanner.planner import Predicate, Action, Problem, Domain, Object, PredicateId, Parameter, PDDLClass, EQ_PREDICATE
@@ -51,13 +52,18 @@ class PDDLObjectFactory:
     def __init__(self, class_factory=None):
         self.objects = {}
         self.class_factory = class_factory
+        self.obj_name_map = {}
 
     def create(self, oname, clsname):
         assert not oname.startswith("?")
         self.objects[oname] = Object(self.class_factory.get(clsname))
+        self.obj_name_map[self.objects[oname]] = oname
 
     def get(self, obj_name, classname="object"):
         return self.objects[obj_name]
+    
+    def to_name(self, obj):
+        return self.obj_name_map[obj]
 
 
 class PredicateFactory:
@@ -276,6 +282,8 @@ def parse_pddl_text(domain_str, problem_str):
                 action_obj.add_effect(effect_obj)
     
     dump_task(domain, problem, action_factory, predicate_factory, object_factory)
+
+    problem._tracer = metaplanner.planner.PlanTracer(object_factory=object_factory, action_factory=action_factory, parameter_factory=parameter_factories)
 
     return domain, problem, predicate_factory, object_factory, parameter_factories, action_factory
     

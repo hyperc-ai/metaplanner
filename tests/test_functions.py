@@ -241,6 +241,8 @@ def test_action_twice():
     problem.match_goal_condition(is_at_fact, is_at_goal)
     problem.match_goal()
 
+    print(problem._tracer.str_plan())
+
 """ # Is not applicable as we clean parameters automatically
 def test_cant_execute_next_wo_cleaning():
     domain, problem, predicate_factory, object_factory, parameter_factories, action_factory \

@@ -1,11 +1,6 @@
 from hyperc import solve, side_effect, side_effect_decorator
-# import gc
-# object_list = gc.get_objects()
+import copy
 
-# TODO: constant objects support in predicate matching
-
-
-# TODO: classes support will reduce grounding
 
 class LinkedListItem:
     next: "LinkedListItem"
@@ -14,14 +9,46 @@ class LinkedListItem:
     def __init__(self):
         self.item = ""
 
+
+class PlanTracer:
+    def __init__(self, object_factory, action_factory, parameter_factory):
+        self.collected_items = []
+        self.plan = []
+        self.action_factory = action_factory
+        self.object_factory = object_factory
+        self.parameter_factory = parameter_factory
+    
+    def insert(self, par, obj):
+        self.collected_items.append([par, obj])
+    
+    def fire(self, action_obj):
+        self.plan.append([action_obj, self.collected_items])
+        self.collected_items = []
+    
+    def str_plan(self):
+        lplan = []
+        for step in self.plan:
+            action_name = self.action_factory.to_name(step[0])
+            all_params_k = self.parameter_factory[action_name].obj_name_map.keys()
+            all_params = {}
+            for k in all_params_k:
+                all_params[k] = "None"
+            for par, obj in step[1]:
+                all_params[par] = self.object_factory.to_name(obj)
+            match_objects = " ".join(all_params.values())
+            lplan.append(f"({action_name} {match_objects})")
+        lplan.append(f"; cost = {len(lplan)} (unit cost)")
+        return "\n".join(lplan)
+
+
 class LinkedList:
-    head = LinkedListItem
+    head: LinkedListItem
     next: LinkedListItem
 
     def __init__(self):
         self.next = LinkedListItem()
         self.head = self.next
-
+    
     def append(self, s: str):
         new_item = LinkedListItem()
         self.next.item = s
@@ -53,7 +80,7 @@ class Parameter:
     const: bool
     # name: str
 
-    def __init__(self, _class):
+    def __init__(self, _class: PDDLClass):
         # self.name = ""
         self.obj = OBJ_NONE
         self._class = _class
@@ -85,8 +112,8 @@ class Predicate:
 
     parity: int
 
-    def __init__(self, name, obj_1=OBJ_NONE, obj_2=OBJ_NONE, 
-                 p1=PAR_NONE, p2=PAR_NONE, negated=False, parity=2):
+    def __init__(self, name: PredicateId, obj_1:Object=OBJ_NONE, obj_2:Object=OBJ_NONE, 
+                 p1:Parameter=PAR_NONE, p2:Parameter=PAR_NONE, negated:bool=False, parity:int=2):
         self.name = name
         self.parity = parity
         self.obj_1 = obj_1
@@ -174,10 +201,12 @@ class Action:
 
         if pred.par_1.obj == OBJ_NONE:
             pred.par_1.obj = fact.obj_1
+            side_effect(lambda: self.problem._tracer.insert(pred.par_1, fact.obj_1))
         
         if pred.parity == 2:
             if pred.par_2.obj == OBJ_NONE:
                 pred.par_2.obj = fact.obj_2
+                side_effect(lambda: self.problem._tracer.insert(pred.par_2, fact.obj_2))
 
         assert fact.obj_1 == pred.par_1.obj
         assert fact.obj_1._class == pred.par_1.obj._class
@@ -284,10 +313,12 @@ class Action:
         if eff.par_1.obj == OBJ_NONE:
             assert eff.par_1._class == obj1._class
             eff.par_1.obj = obj1
+            side_effect(lambda: self.problem._tracer.insert(eff.par_1, obj1))
         if eff.parity == 2:
             if eff.par_2.obj == OBJ_NONE:
                 eff.par_2._class == obj2._class
                 eff.par_2.obj = obj2
+                side_effect(lambda: self.problem._tracer.insert(eff.par_2, obj2))
         # If negated, remove, if non-negated: add
         # side_effect(lambda: print(f"run_effect {eff.name.name},{eff.par_1.obj.name},{eff.par_2.obj.name} - {existing_fact}"))       
         side_effect(lambda: print(f"run_effect {eff.name},{eff.par_1.obj},{eff.par_2.obj} - {existing_fact}"))       
@@ -304,6 +335,7 @@ class Action:
         if self.eff_match == self.eff_count:
             # problem.current_actions.add(3)
             self.eff_completed = True
+            side_effect(lambda: self.problem._tracer.fire(self))
 
         # side_effect(lambda: print(f"Running action {self.name}"))
     # def clean_parameter(self, par: Parameter):
