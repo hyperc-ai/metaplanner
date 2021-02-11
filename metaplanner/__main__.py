@@ -21,10 +21,13 @@ hyperc.settings.HYPERC_NEW_OBJECTS=7
 hyperc.settings.HYPERC_ASE_OFF=1
 
 if __name__ == "__main__":
+    DOM = open(sys.argv[1]).read()
+    PROB = open(sys.argv[2]).read()
     domain, problem, predicate_factory, object_factory, parameter_factories, action_factory = \
-        metaplanner.pddl.parse_pddl_text(open(sys.argv[1]).read(), open(sys.argv[2]).read())
+        metaplanner.pddl.parse_pddl_text(DOM, PROB)
     problem.prepare()
-    solve(problem.match_goal)
+    metadata = {}
+    solve(problem.match_goal, metadata=metadata)
 
     metaplanner.pddl.dump_task(domain, problem, action_factory)
 
@@ -36,3 +39,7 @@ if __name__ == "__main__":
     print(plan)
     if len(sys.argv) == 4:
         open(sys.argv[3], "w+").write(plan)
+    open(metadata["work_dir"]+"/meta0.plan", "w+").write(plan)
+    open(metadata["work_dir"]+"/meta0.domain", "w+").write(DOM)
+    open(metadata["work_dir"]+"/meta0.problem", "w+").write(PROB)
+
