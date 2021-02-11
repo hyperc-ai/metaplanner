@@ -29,10 +29,11 @@ class PlanTracer:
         lplan = []
         for step in self.plan:
             action_name = self.action_factory.to_name(step[0])
-            all_params_k = self.parameter_factory[action_name].obj_name_map.keys()
+            all_params_k = self.parameter_factory[action_name].obj_name_map.items()
             all_params = {}
-            for k in all_params_k:
-                all_params[k] = "None"
+            for k, v in all_params_k:
+                if v.startswith("?"): continue
+                all_params[k] = "None-"+str(v)
             for par, obj in step[1]:
                 all_params[par] = self.object_factory.to_name(obj)
             match_objects = " ".join(all_params.values())
