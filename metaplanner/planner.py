@@ -32,7 +32,7 @@ class PlanTracer:
             all_params_k = self.parameter_factory[action_name].obj_name_map.items()
             all_params = {}
             for k, v in all_params_k:
-                if v.startswith("?"): continue
+                if not str(v).startswith("?"): continue
                 all_params[k] = "None-"+str(v)
             for par, obj in step[1]:
                 all_params[par] = self.object_factory.to_name(obj)
