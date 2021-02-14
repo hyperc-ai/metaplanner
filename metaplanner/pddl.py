@@ -1,3 +1,4 @@
+from collections import defaultdict
 import sys
 import re
 import string
@@ -6,6 +7,8 @@ import metaplanner.planner
 
 # sys.path.append(".")
 from metaplanner.planner import Predicate, Action, Problem, Domain, Object, PredicateId, Parameter, PDDLClass, EQ_PREDICATE
+
+DEBUG = False
 
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
@@ -39,7 +42,11 @@ class PDDLClassFactory:
         self.classes = {}
     
     def create(self, classname):
+        if classname in self.classes:
+            return  # Refusing to rewrite class...
         self.classes[classname] = PDDLClass()
+        if DEBUG:
+            self.classes[classname]._name = classname
 
     def get(self, classname):
         return self.classes[classname]
@@ -47,17 +54,21 @@ class PDDLClassFactory:
 
 class PDDLObjectFactory:
     objects: dict
-    class_factory = PDDLClassFactory
+    class_factory: PDDLClassFactory
 
     def __init__(self, class_factory=None):
         self.objects = {}
         self.class_factory = class_factory
         self.obj_name_map = {}
+        self.objects_perclass = defaultdict(list)
 
     def create(self, oname, clsname):
         assert not oname.startswith("?")
         self.objects[oname] = Object(self.class_factory.get(clsname))
+        if DEBUG:
+            self.objects[oname]._classname = clsname
         self.obj_name_map[self.objects[oname]] = oname
+        self.objects_perclass[clsname].append(oname)
 
     def get(self, obj_name, classname="object"):
         return self.objects[obj_name]
@@ -98,6 +109,9 @@ class ParameterFactory:
         assert pname.startswith("?")
         self.parameters[pname] = Parameter(self.classes.get(clsname))
         self.obj_name_map[self.parameters[pname]] = pname
+        if DEBUG:
+            self.parameters[pname]._name = pname
+            self.parameters[pname]._clsname = clsname
     
     def get(self, par_name):
         if not par_name in self.parameters and not par_name.startswith("?"):

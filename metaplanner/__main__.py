@@ -19,8 +19,8 @@ hyperc.settings.HYPERC_LOGLEVEL=os.getenv("HYPERC_LOGLEVEL", "info")
 hyperc.settings.HYPERC_SOLVER_LOGLEVEL="info" 
 hyperc.settings.DOWNWARD_TOTAL_PUSHES=5000000000 
 hyperc.settings.HYPERC_STRICT_TYPING=1 
-hyperc.settings.HYPERC_LIN_COUNT=9 
-hyperc.settings.HYPERC_NEW_OBJECTS=7 
+hyperc.settings.HYPERC_LIN_COUNT=int(os.getenv("HYPERC_LIN_COUNT", 10))
+hyperc.settings.HYPERC_NEW_OBJECTS=int(os.getenv("HYPERC_NEW_OBJECTS", 7))
 hyperc.settings.HYPERC_ASE_OFF=1
 
 if __name__ == "__main__":
