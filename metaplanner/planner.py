@@ -200,17 +200,18 @@ class Action:
         assert fact in problem.init, "`fact` must exist in problem fact space"
         assert pred.name == fact.name, "Can only match same fact"
         assert pred.negated == False 
+        assert self.problem.plan_len != -1
 
         if pred.par_1.obj == OBJ_NONE:
             pred.par_1.obj = fact.obj_1
             side_effect(lambda: self.problem._tracer.insert(pred.par_1, fact.obj_1))
-        hint_exact(pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj1"))
+        hint_exact(self.problem.plan_len, self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj1"))
         
         if pred.parity == 2:
             if pred.par_2.obj == OBJ_NONE:
                 pred.par_2.obj = fact.obj_2
                 side_effect(lambda: self.problem._tracer.insert(pred.par_2, fact.obj_2))
-            hint_exact(pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2"))
+            hint_exact(self.problem.plan_len, self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2"))
 
         assert fact.obj_1 == pred.par_1.obj
         assert fact.obj_1._class == pred.par_1.obj._class
@@ -279,8 +280,9 @@ class Action:
         assert pre.name == EQ_PREDICATE
         assert pre.par_1.obj != OBJ_NONE
         assert pre.par_2.obj != OBJ_NONE
-        hint_exact(pre, pre.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-eq-obj1"))
-        hint_exact(pre, pre.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-eq-obj2"))
+        assert self.problem.plan_len != -1
+        hint_exact(self.problem.plan_len, self, pre, pre.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-eq-obj1"))
+        hint_exact(self.problem.plan_len, self, pre, pre.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-eq-obj2"))
         if pre.negated == True:
             assert pre.par_1.obj != pre.par_2.obj
         else:
@@ -322,13 +324,13 @@ class Action:
             assert eff.par_1._class == obj1._class
             eff.par_1.obj = obj1
             side_effect(lambda: self.problem._tracer.insert(eff.par_1, obj1))
-        hint_exact(self.problem.plan_len, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
+        hint_exact(self.problem.plan_len, self, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
         if eff.parity == 2:
             if eff.par_2.obj == OBJ_NONE:
                 eff.par_2._class == obj2._class
                 eff.par_2.obj = obj2
                 side_effect(lambda: self.problem._tracer.insert(eff.par_2, obj2))
-            hint_exact(self.problem.plan_len, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
+            hint_exact(self.problem.plan_len, self, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
         # If negated, remove, if non-negated: add
         # side_effect(lambda: print(f"run_effect {eff.name.name},{eff.par_1.obj.name},{eff.par_2.obj.name} - {existing_fact}"))       
         side_effect(lambda: print(f"run_effect {eff.name},{eff.par_1.obj},{eff.par_2.obj} - {existing_fact}"))       
@@ -341,8 +343,8 @@ class Action:
                 assert existing_fact.obj_2._class == eff.par_2.obj._class
             problem.init.remove(existing_fact)
         else:
-            hint_exact(self.problem.plan_len, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
-            hint_exact(self.problem.plan_len, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
+            hint_exact(self.problem.plan_len, self, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
+            hint_exact(self.problem.plan_len, self, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
             problem.init.add(Predicate(name=eff.name, obj_1=eff.par_1.obj, obj_2=eff.par_2.obj, parity=eff.parity))
         if self.eff_match == self.eff_count:
             # problem.current_actions.add(3)
@@ -377,11 +379,11 @@ class Action:
         pred.matched = False
         self.pre_match -= 1
         if pred.par_1.const != True:
-            # hint_exact(pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj1"))
+            hint_exact(self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pre-obj1-cln"))
             pred.par_1.obj = OBJ_NONE
         if pred.parity == 2:
             if pred.par_2.const != True:
-                # hint_exact(pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2"))
+                hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pre-obj2-cln"))
                 pred.par_2.obj = OBJ_NONE
         # if 2 in self.problem.current_actions:
             # self.problem.current_actions.remove(2)
@@ -399,11 +401,11 @@ class Action:
         pred.matched = False
         self.eff_match -= 1
         if pred.par_1.const != True:
-            # hint_exact(pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
+            hint_exact(self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1-cln"))
             pred.par_1.obj = OBJ_NONE
         if pred.parity == 2:
             if pred.par_2.const != True:
-                # hint_exact(pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
+                hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2-cln"))
                 pred.par_2.obj = OBJ_NONE
         # if 2 in self.problem.current_actions:
             # self.problem.current_actions.remove(2)
