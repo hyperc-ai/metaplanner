@@ -338,6 +338,7 @@ class Action:
             assert existing_fact.name == eff.name
             assert existing_fact.obj_1 == eff.par_1.obj
             assert existing_fact.obj_1._class == eff.par_1.obj._class
+            # TODO HERE: add hints to negation
             if eff.parity == 2:
                 assert existing_fact.obj_2 == eff.par_2.obj
                 assert existing_fact.obj_2._class == eff.par_2.obj._class
@@ -379,11 +380,11 @@ class Action:
         pred.matched = False
         self.pre_match -= 1
         if pred.par_1.const != True:
-            hint_exact(self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pre-obj1-cln"))
+            hint_exact(self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj1-cln"))
             pred.par_1.obj = OBJ_NONE
         if pred.parity == 2:
             if pred.par_2.const != True:
-                hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pre-obj2-cln"))
+                hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2-cln"))
                 pred.par_2.obj = OBJ_NONE
         # if 2 in self.problem.current_actions:
             # self.problem.current_actions.remove(2)
