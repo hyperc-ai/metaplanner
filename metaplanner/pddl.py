@@ -67,6 +67,7 @@ class PDDLObjectFactory:
         self.objects[oname] = Object(self.class_factory.get(clsname))
         if DEBUG:
             self.objects[oname]._classname = clsname
+            self.objects[oname]._oname = oname 
         self.obj_name_map[self.objects[oname]] = oname
         self.objects_perclass[clsname].append(oname)
 
@@ -95,12 +96,14 @@ class PredicateFactory:
 
 class ParameterFactory:
     parameters: dict
+    constant_parameters: dict
     obj_name_map: dict
     objects: PDDLObjectFactory
     classes: PDDLClassFactory
 
     def __init__(self, objectFactory, classFactory):
         self.parameters = {}
+        self.constant_parameters = {}
         self.objects = objectFactory
         self.obj_name_map = {}
         self.classes = classFactory
@@ -116,11 +119,14 @@ class ParameterFactory:
     def get(self, par_name):
         if not par_name in self.parameters and not par_name.startswith("?"):
             # If this is an object, create a constant parameter
-            self.parameters[par_name] = Parameter(self.objects.get(par_name)._class)
-            self.parameters[par_name].const = True
-            self.parameters[par_name].obj = self.objects.get(par_name)
-            self.obj_name_map[self.parameters[par_name]] = par_name
+            self.constant_parameters[par_name] = Parameter(self.objects.get(par_name)._class)
+            self.constant_parameters[par_name].const = True
+            self.constant_parameters[par_name].obj = self.objects.get(par_name)
+            self.obj_name_map[self.constant_parameters[par_name]] = par_name
+            return self.constant_parameters[par_name]
         print("Returning prarameter", par_name, self.parameters[par_name])
+        if par_name in self.constant_parameters:
+            return self.constant_parameters[par_name]
         return self.parameters[par_name]
     
 class ActionFactory:
