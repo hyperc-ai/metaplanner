@@ -89,6 +89,8 @@ def gen_random_action(classes_list, objects_dict, precondition_decl):
     effects = [ ]
     effect_preds = set()
 
+    precondition_parameters_used = set()
+
     for i in range(random.randint(MIN_ACTION_PREDICATES, MAX_ACTION_PREDICATES)):
         pdec = random.choice(precondition_decl)
 
@@ -118,8 +120,18 @@ def gen_random_action(classes_list, objects_dict, precondition_decl):
 
         if random.randint(0, 4):
             preconditions.append(pred)
+            precondition_parameters_used.add(par1_name)
+            precondition_parameters_used.add(par2_name)
         else:
-            if random.randint(0, 5):
+            if not par1_name.startswith("?") or not par2_name.startswith("?"):
+                r = 1
+            else:
+                if par1_name in precondition_parameters_used and \
+                    par2_name in precondition_parameters_used:
+                    r = random.randint(0, 5)
+                else:
+                    r = 1
+            if r:
                 effects.append(pred)
                 effect_preds.add(pdec)
             else:
@@ -240,7 +252,7 @@ def gen_full_problem():
 """
 
 def solve_problem(domfn, probfn, sfx="", planlen=3, fldr=""):
-    solve_str = f"fast-downward --plan-file {fldr}/out{sfx}.plan --sas-file {fldr}/output{sfx}.sas {domfn} {probfn} --translate-options --total-queue-pushes 50000000000 --search-options --evaluator 'hff=ff()' --evaluator 'hlm=lmcount(lm_rhw(reasonable_orders=true),transform=no_transform())' --search 'lazy(alt([single(hff),single(hff,pref_only=true),single(hlm),single(hlm,pref_only=true),type_based([hff,g()])],boost=1000), preferred=[hff,hlm], cost_type=one, reopen_closed=false, randomize_successors=true, preferred_successors_first=false, bound=infinity)'"
+    solve_str = f"timeout 20 fast-downward --plan-file {fldr}/out{sfx}.plan --sas-file {fldr}/output{sfx}.sas {domfn} {probfn} --translate-options --total-queue-pushes 5000000 --search-options --evaluator 'hff=ff()' --evaluator 'hlm=lmcount(lm_rhw(reasonable_orders=true),transform=no_transform())' --search 'lazy(alt([single(hff),single(hff,pref_only=true),single(hlm),single(hlm,pref_only=true),type_based([hff,g()])],boost=1000), preferred=[hff,hlm], cost_type=one, reopen_closed=false, randomize_successors=true, preferred_successors_first=false, bound=infinity)'"
     p = subprocess.run(solve_str, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     if p.returncode == 0:
         if len(open(f"{fldr}/out{sfx}.plan").readlines()) < planlen: return 1000
