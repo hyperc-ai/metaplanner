@@ -11,7 +11,7 @@
         :precondition (and
             (apple-is-on ?apple-0 ?tree-1)
             (is-at ?me-2 ?tree-1)
-            (not (= (?tree-1 ?me-2)))
+            (not (= ?tree-1 ?me-2))
         )
         :effect (and
             (hand-has hand ?apple-0)
