@@ -134,3 +134,4 @@ generated*
 *.out
 *.sas
 *.pddl
+*.mplan
