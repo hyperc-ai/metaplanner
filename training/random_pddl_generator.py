@@ -119,6 +119,14 @@ def gen_random_action(classes_list, objects_dict, precondition_decl):
         pred = f"({pdec.pname} {par1_name} {par2_name})"
 
         if random.randint(0, 4):
+            if par1_name.startswith("?") and par2_name.startswith("?") and \
+                    not random.randint(0, 2) and \
+                    par1_name in precondition_parameters_used and \
+                    par2_name in precondition_parameters_used:
+                if random.randint(0, 1):
+                    pred = f"(= {par1_name} {par2_name})"
+                else:
+                    pred = f"(not (= {par1_name} {par2_name}))"
             preconditions.append(pred)
             precondition_parameters_used.add(par1_name)
             precondition_parameters_used.add(par2_name)
