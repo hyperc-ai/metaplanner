@@ -25,8 +25,13 @@ class PlanTracer:
     def fire(self, action_obj):
         self.plan.append([action_obj, self.collected_items])
         self.collected_items = []
+
+    def set_current_action(self, action_obj):
+        self.current_action = action_obj
     
     def str_plan(self):
+        if len(self.collected_items) > 0:  # run incomplete effect
+            self.fire(self.current_action)
         lplan = []
         for step in self.plan:
             action_name = self.action_factory.to_name(step[0])
@@ -315,6 +320,7 @@ class Action:
         assert eff.matched == False
         eff.matched = True
         side_effect(lambda: self.problem.plan.append(self if self.eff_match == 0 else None))
+        side_effect(lambda: self.problem._tracer.set_current_action(self))
         # if self.eff_match == 0:  # TODO: remove this because it creates spurious branches
             # side_effect(lambda: self.problem.plan.append(self))  # TODO: PERF
             # self.problem.plan.append(self.name)  # TODO: PERF

@@ -46,6 +46,7 @@ if __name__ == "__main__":
         # print(f"({action_factory.to_name(step.item)} ...)")
         # step = step.next
     plan = problem._tracer.str_plan()
+    plan += "\n"
     print(plan)
     if len(sys.argv) >= 4:
         open(sys.argv[3], "w+").write(plan)
