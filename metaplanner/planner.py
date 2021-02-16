@@ -325,7 +325,7 @@ class Action:
         hint_exact(self.problem.plan_len, self, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
         # TODO: do we need to support freevar effects?
         if eff.par_2.obj == OBJ_NONE:
-            eff.par_2._class == obj2._class
+            assert eff.par_2._class == obj2._class
             eff.par_2.obj = obj2
             side_effect(lambda: self.problem._tracer.insert(eff.par_2, obj2))
         hint_exact(self.problem.plan_len, self, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
