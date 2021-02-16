@@ -177,7 +177,7 @@ def test_action_twice():
 
     node_connected_fact = next(filter(
         lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_1.obj == object_factory.get("n2"), problem.init)) 
+            and x.obj_1 == object_factory.get("n2"), problem.init)) 
     action.match_precondition(node_connected_pre, node_connected_fact)
 
     # run effect
@@ -209,7 +209,7 @@ def test_action_twice():
     action.match_precondition(is_at_pre, is_at_fact)
     node_connected_fact = next(filter(
         lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_1.obj == object_factory.get("n3"), problem.init)) 
+            and x.obj_1 == object_factory.get("n3"), problem.init)) 
     action.match_precondition(node_connected_pre, node_connected_fact)
 
     # run effect
@@ -307,7 +307,7 @@ def test_cant_clean_to_match():
 
     node_connected_fact_wrong = next(filter(
         lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_1.obj == object_factory.get("n3"), problem.init)) 
+            and x.obj_1 == object_factory.get("n3"), problem.init)) 
     try:
         # action.clean_parameter(node_connected_pre.par_1)
         # action.clean_parameter(node_connected_pre.par_2)
@@ -392,7 +392,7 @@ def test_cant_rerun_effect():
 
     node_connected_fact = next(filter(
         lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_2.obj == object_factory.get("n22"), problem.init)) 
+            and x.obj_2 == object_factory.get("n22"), problem.init)) 
     action.match_precondition(node_connected_pre, node_connected_fact)
     action.match_eq_precondition(eq_pre)
 
@@ -434,7 +434,7 @@ def test_cant_clean_pre_while_matching():
 
     node_connected_fact = next(filter(
         lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_2.obj == object_factory.get("n22"), problem.init)) 
+            and x.obj_2 == object_factory.get("n22"), problem.init)) 
     action.match_precondition(node_connected_pre, node_connected_fact)
     try:
         action.clean_precondition(node_connected_pre)
@@ -455,7 +455,7 @@ def test_cant_clean_eff_while_running():
 
     node_connected_fact = next(filter(
         lambda x: x.name == predicate_factory.get("node-connected") \
-            and x.par_1.obj == object_factory.get("n2"), problem.init)) 
+            and x.obj_1 == object_factory.get("n2"), problem.init)) 
     action.match_precondition(node_connected_pre, node_connected_fact)
 
     # run effect

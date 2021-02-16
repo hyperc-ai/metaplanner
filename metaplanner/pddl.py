@@ -6,7 +6,7 @@ from itertools import zip_longest
 import metaplanner.planner
 
 # sys.path.append(".")
-from metaplanner.planner import Predicate, Action, Problem, Domain, Object, PredicateId, Parameter, PDDLClass, EQ_PREDICATE
+from metaplanner.planner import Predicate, Action, Problem, Domain, Object, PredicateId, Parameter, PDDLClass, EQ_PREDICATE, Fact
 
 DEBUG = False
 
@@ -160,8 +160,6 @@ def fill_pkeys(p1, p2, negated):
             pred_init["p2"] = p2
         else:
             pred_init["obj_2"] = p2
-    else:
-        pred_init["parity"] = 1
     pred_init["negated"] = negated
     print("Returning", repr(pred_init))
     return pred_init
@@ -225,9 +223,7 @@ def parse_pddl_text(domain_str, problem_str):
                 v1 = object_factory.get(pfact[1])
                 if len(pfact) == 3:
                     v2 = object_factory.get(pfact[2])
-                    fact = Predicate(predicate_id, obj_1=v1, obj_2=v2, parity=2)
-                else:
-                    fact = Predicate(predicate_id, obj_1=v1, parity=1)
+                    fact = Fact(predicate_id, obj_1=v1, obj_2=v2)
                 problem.init.add(fact)
                 print("Added init state")
         if l[0] == ":goal":
@@ -236,9 +232,7 @@ def parse_pddl_text(domain_str, problem_str):
                 v1 = object_factory.get(pfact[1])
                 if len(pfact) == 3:
                     v2 = object_factory.get(pfact[2])
-                    fact = Predicate(predicate_id, obj_1=v1, obj_2=v2, parity=2)
-                else:
-                    fact = Predicate(predicate_id, obj_1=v1, parity=1)
+                    fact = Fact(predicate_id, obj_1=v1, obj_2=v2)
                 print("adding goal")
                 problem.add_goal(fact)
 

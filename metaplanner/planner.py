@@ -105,11 +105,20 @@ class PredicateId:
 
 EQ_PREDICATE = PredicateId()
 
-
-class Predicate:
+class Fact:
     name: PredicateId
     obj_1: Object
     obj_2: Object
+    matched: bool
+    def __init__(self, name: PredicateId, obj_1:Object=OBJ_NONE, obj_2:Object=OBJ_NONE):
+        self.name = name
+        self.obj_1 = obj_1
+        self.obj_2 = obj_2
+        self.matched = False
+
+
+class Predicate:
+    name: PredicateId
 
     par_1: Parameter
     par_2: Parameter
@@ -117,24 +126,13 @@ class Predicate:
     negated: bool
     matched: bool
 
-    parity: int
-
-    def __init__(self, name: PredicateId, obj_1:Object=OBJ_NONE, obj_2:Object=OBJ_NONE, 
-                 p1:Parameter=PAR_NONE, p2:Parameter=PAR_NONE, negated:bool=False, parity:int=2):
+    def __init__(self, name: PredicateId,  
+                 p1:Parameter=PAR_NONE, p2:Parameter=PAR_NONE, negated:bool=False):
         self.name = name
-        self.parity = parity
-        self.obj_1 = obj_1
-        self.obj_2 = obj_2
         self.negated = negated
         self.matched = False
         self.par_1 = p1
         self.par_2 = p2
-        if obj_1 != OBJ_NONE:
-            self.par_1 = Parameter(obj_1._class)
-            self.par_1.obj = obj_1
-        if obj_2 != OBJ_NONE:
-            self.par_2 = Parameter(obj_2._class)
-            self.par_2.obj = obj_2
         # side_effect(lambda: print(f" - ({self.name.name} {self.obj_1.name} {self.obj_2.name} {self.par_1.name} {self.par_2.name}) negated = {self.negated}"))
 
 
@@ -187,12 +185,11 @@ class Action:
         side_effect(lambda: print(f"add_effect:"))
 
 
-    def match_precondition(self, pred: Predicate, fact: Predicate):
+    def match_precondition(self, pred: Predicate, fact: Fact):
         "Match some of our precondition"
         problem = self.problem
 
         # block to reduce branching
-        assert pred != fact
         assert self.effect != problem.init
         # assert problem.init != problem.current_actions
         # assert problem.current_actions != self.effect
@@ -212,18 +209,16 @@ class Action:
             side_effect(lambda: self.problem._tracer.insert(pred.par_1, fact.obj_1))
         hint_exact(self.problem.plan_len, self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj1"))
         
-        if pred.parity == 2:
-            if pred.par_2.obj == OBJ_NONE:
-                pred.par_2.obj = fact.obj_2
-                side_effect(lambda: self.problem._tracer.insert(pred.par_2, fact.obj_2))
-            hint_exact(self.problem.plan_len, self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2"))
+        if pred.par_2.obj == OBJ_NONE:
+            pred.par_2.obj = fact.obj_2
+            side_effect(lambda: self.problem._tracer.insert(pred.par_2, fact.obj_2))
+        hint_exact(self.problem.plan_len, self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2"))
 
         assert fact.obj_1 == pred.par_1.obj
         assert fact.obj_1._class == pred.par_1.obj._class
 
-        if pred.parity == 2:
-            assert fact.obj_2 == pred.par_2.obj
-            assert fact.obj_2._class == pred.par_2.obj._class
+        assert fact.obj_2 == pred.par_2.obj
+        assert fact.obj_2._class == pred.par_2.obj._class
 
         assert pred.matched == False
 
@@ -235,14 +230,13 @@ class Action:
         side_effect(lambda: print(f"match_precondition {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
         # side_effect(lambda: print(f"match_precondition {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
 
-    def match_NOT_precondition_when_direct_link(self, pred: Predicate, fact: Predicate):
+    def match_NOT_precondition_when_direct_link(self, pred: Predicate, fact: Fact):
         "Match NOT precondition. Has a limited support in HyperC PDDL dialect"
         # side_effect(lambda: print(f"match_NOT_precondition_when_direct_link {pred.name.name},{pred.par_1.obj.name}, {pred.par_2.obj.name}"))
         side_effect(lambda: print(f"match_NOT_precondition_when_direct_link {pred.name},{pred.par_1.obj}, {pred.par_2.obj}"))
         problem = self.problem
 
         # block to reduce branching 
-        assert pred != fact
         assert self.effect != problem.init
         # assert problem.init != problem.current_actions
         # assert problem.current_actions != self.effect
@@ -258,9 +252,8 @@ class Action:
         assert pred.matched == False
         assert fact.obj_1 == pred.par_1.obj
         assert fact.obj_1._class == pred.par_1.obj._class
-        if pred.parity == 2:
-            assert fact.obj_2._class == pred.par_2.obj._class
-            assert fact.obj_2 != pred.par_2.obj
+        assert fact.obj_2._class == pred.par_2.obj._class
+        assert fact.obj_2 != pred.par_2.obj
         pred.matched = True
         self.pre_match += 1
         if self.pre_match == self.pre_count:
@@ -299,11 +292,10 @@ class Action:
             self.pre_completed = True
 
     def run_effect(self, eff: Predicate, obj1: Object, obj2: Object,
-                   existing_fact: Predicate):
+                   existing_fact: Fact):
         problem = self.problem
 
         # block to reduce branching 
-        assert eff != existing_fact
         assert self.effect != problem.init
         # assert problem.init != problem.current_actions
         # assert problem.current_actions != self.effect
@@ -331,12 +323,12 @@ class Action:
             eff.par_1.obj = obj1
             side_effect(lambda: self.problem._tracer.insert(eff.par_1, obj1))
         hint_exact(self.problem.plan_len, self, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
-        if eff.parity == 2:
-            if eff.par_2.obj == OBJ_NONE:
-                eff.par_2._class == obj2._class
-                eff.par_2.obj = obj2
-                side_effect(lambda: self.problem._tracer.insert(eff.par_2, obj2))
-            hint_exact(self.problem.plan_len, self, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
+        # TODO: do we need to support freevar effects?
+        if eff.par_2.obj == OBJ_NONE:
+            eff.par_2._class == obj2._class
+            eff.par_2.obj = obj2
+            side_effect(lambda: self.problem._tracer.insert(eff.par_2, obj2))
+        hint_exact(self.problem.plan_len, self, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
         # If negated, remove, if non-negated: add
         # side_effect(lambda: print(f"run_effect {eff.name.name},{eff.par_1.obj.name},{eff.par_2.obj.name} - {existing_fact}"))       
         side_effect(lambda: print(f"run_effect {eff.name},{eff.par_1.obj},{eff.par_2.obj} - {existing_fact}"))       
@@ -345,14 +337,14 @@ class Action:
             assert existing_fact.obj_1 == eff.par_1.obj
             assert existing_fact.obj_1._class == eff.par_1.obj._class
             # TODO HERE: add hints to negation
-            if eff.parity == 2:
-                assert existing_fact.obj_2 == eff.par_2.obj
-                assert existing_fact.obj_2._class == eff.par_2.obj._class
+            # TODO: support removing non-existing fact
+            assert existing_fact.obj_2 == eff.par_2.obj
+            assert existing_fact.obj_2._class == eff.par_2.obj._class
             problem.init.remove(existing_fact)
         else:
             hint_exact(self.problem.plan_len, self, eff, eff.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1"))
             hint_exact(self.problem.plan_len, self, eff, eff.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2"))
-            problem.init.add(Predicate(name=eff.name, obj_1=eff.par_1.obj, obj_2=eff.par_2.obj, parity=eff.parity))
+            problem.init.add(Fact(name=eff.name, obj_1=eff.par_1.obj, obj_2=eff.par_2.obj))
         if self.eff_match == self.eff_count:
             # problem.current_actions.add(3)
             self.eff_completed = True
@@ -388,10 +380,9 @@ class Action:
         if pred.par_1.const != True:
             hint_exact(self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj1-cln"))
             pred.par_1.obj = OBJ_NONE
-        if pred.parity == 2:
-            if pred.par_2.const != True:
-                hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2-cln"))
-                pred.par_2.obj = OBJ_NONE
+        if pred.par_2.const != True:
+            hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].pre_hints.get("pred-obj2-cln"))
+            pred.par_2.obj = OBJ_NONE
         # if 2 in self.problem.current_actions:
             # self.problem.current_actions.remove(2)
         if self.pre_match == 0:
@@ -410,10 +401,9 @@ class Action:
         if pred.par_1.const != True:
             hint_exact(self, pred, pred.par_1.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj1-cln"))
             pred.par_1.obj = OBJ_NONE
-        if pred.parity == 2:
-            if pred.par_2.const != True:
-                hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2-cln"))
-                pred.par_2.obj = OBJ_NONE
+        if pred.par_2.const != True:
+            hint_exact(self, pred, pred.par_2.obj, lambda: _real_globals_dict["hintsmod"].eff_hints.get("eff-obj2-cln"))
+            pred.par_2.obj = OBJ_NONE
         # if 2 in self.problem.current_actions:
             # self.problem.current_actions.remove(2)
         if self.eff_match == 0:
@@ -476,7 +466,7 @@ class Problem:
         self.goal.add(goal_pred)
         self.goal_count += 1
 
-    def match_goal_condition(self, p: Predicate, g: Predicate):
+    def match_goal_condition(self, p: Fact, g: Fact):
         problem = self
 
         # block to reduce branching
