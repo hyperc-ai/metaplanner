@@ -4,7 +4,7 @@ mkdir -p ./training/$1
 mkdir -p /var/data/userdata/training/$1
 rm ./training/$1/*
 for i in `seq 0 2000`; do
-    python ./training/random_pddl_generator.py 1 3 ${i} ./training/$1/
+    python ./training/random_pddl_generator.py 1 6 ${i} ./training/$1/ 10
     [ $? -eq 0 ] && echo "pddl generation success" || exit 1
     if [ `wc -w ./training/$1/out$i.plan` -gt 19 ]; then
         if [ `wc -w ./training/$1/out$i.plan` -gt 25 ]; then
