@@ -1,3 +1,5 @@
+<img src="https://img.shields.io/badge/maturity-pre--alpha-red"/>
+
 # metaplanner - Recursive self-optimizing AI planner
 
 Experimental hyperc-defined PDDL planner
